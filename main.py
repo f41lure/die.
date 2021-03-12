@@ -30,6 +30,25 @@ def signup(username, password):
     return False
 
 def addsong(name, artist):
-  check = 1
+  db = conn.cursor()
+  check = db.execute("""SELECT * FROM songs WHERE name = ? AND artist = ?;""", [name, artist]).fetchall()
+  if check:
+    return False
+  else:
+    db.execute("""INSERT INTO songs (name, artist) VALUES (?, ?);""", [name, artist])
+    conn.commit()
 
-print(authenticate("yes", "yes"))
+def fetchsong(prev):
+  db = conn.cursor()
+  ceiling = db.execute("""SELECT COUNT(0) FROM songs;""").fetchall()[0][0]
+  songid = random.randrange(1, ceiling[0])
+  song = db.execute("""SELECT * FROM songs WHERE id=?""", [songid]).fetchall()
+
+  kya = ''
+  for word in song[0][1].split(' '):
+    kya += word[0] + ('_' * (len(word)-1)) + ' '
+  kya = kya.rstrip()
+
+  return song, kya
+
+
