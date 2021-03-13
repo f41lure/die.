@@ -1,5 +1,6 @@
 import sqlite3
 import random
+import curses
 from passlib.apps import custom_app_context as pwd_context
 
 conn = sqlite3.connect("app.db", check_same_thread=False)
@@ -7,6 +8,7 @@ gUsername = None
 gPassword = None
 running = False
 
+screen = curses.initscr()
 
 def authenticate(username, password):
   global gUsername
@@ -72,37 +74,54 @@ def bank(user, score):
   conn.commit()
 
 def main():
+  global screen
   running = True
   while running:
     if not gUsername:
-      action = input("Login (l) or sign up (s): ")
-      username = input("username: ")
-      password = input("password: ")
+      screen.addstr(0, 0, "Login (l) or sign up (s): ")
+      action = chr(screen.getch())
+      screen.clear()
+      screen.addstr(0, 0, action)
+      screen.addstr(0, 0, "username: ")
+      username = screen.getstr().decode(encoding='utf-8')
+      screen.addstr(1, 0, "password: ")
+      password = screen.getstr().decode(encoding='utf-8')
+      screen.clear()
       if action == "l":
-        print(authenticate(username, password))
+        screen.addstr(0, 0, authenticate(username, password))
         continue
       elif action == 's':
-        print(signup(username, password))
+        screen.addstr(0, 0, signup(username, password))
         continue
     else:
-      action = input("""(p) start playing
-(a) add song
-(l) leaderboard
-choose: """)
+      screen.clear()
+      screen.addstr(0, 0, "(p) start playing")
+      screen.addstr(1, 0, "(a) add song")
+      screen.addstr(2, 0, "(l) leaderboard")
+      screen.addstr(3, 0, "choose: ")
+      action = chr(screen.getch())
       if action == 'p':
         gameloop()
       elif action == 'a':
-        song = input("Song name: ")
-        artist = input("Artist: ")
+        screen.clear()
+        screen.addstr(0, 0, "Song name (be exact, dingus): ")
+        song = screen.getstr().decode(encoding='utf-8')
+        screen.addstr(1, 0, "Artist (be consistent, dingus): ")
+        artist = screen.getstr().decode(encoding='utf-8')
         addsong(song, artist)
-        print("Added.")
+        screen.addstr(2, 0, "Added.")
       elif action == 'l':
+        screen.clear()
         tards = leaderboard()
-        for singularTard in tards:
-          print("{}: {}".format(singularTard[0], singularTard[2]))
+        for tardLocation, singularTard in enumerate(tards):
+          yeah = "{}: {}".format(singularTard[0], singularTard[2])
+          screen.addstr(tardLocation, 0, yeah)
+        screen.addstr(6, 0, "Press any key to go back: ")
+        screen.getch()
         continue
 
 def gameloop():
+  screen.clear()
   score = 0
   attempted = 0
   playing = True
@@ -112,18 +131,27 @@ def gameloop():
     song = fetchsong()
     details = song[0][0]
     question = song[1]
-    while incorrect and tries < 2: 
-      answer = input("Guess this song: {} by {}\n".format(question, details[2]))
+    while incorrect and tries < 2:
+      display = "Guess this song: {} by {}\n".format(question, details[2])
+      screen.addstr(0, 0, ' ')
+      screen.addstr(0, 0, display)
+      curses.setsyx(1, 0)
+      screen.clrtoeol()
+      answer = screen.getstr().decode(encoding='utf-8')
       if answer == 'n':
         playing = False
         break
       elif answer != details[1]:
-        print("Nope, try again")
+        screen.addstr(3, 0, "Nope, try again.")
         tries += 1
       else:
         incorrect = False
     score += 2/(tries+1) * (not incorrect)
     attempted += 1
+    display = 'score: {}'.format(str(score))
+    screen.clear()
+    screen.addstr(2, 0, display)
+    screen.addstr(1, 0, '')
   bank(gUsername, score)
    
 main()
