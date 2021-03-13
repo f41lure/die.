@@ -73,6 +73,15 @@ def bank(user, score):
   db.execute("""UPDATE users SET score=score+? WHERE username=?""", [score, user])
   conn.commit()
 
+def listsongs():
+  global screen
+  db = conn.cursor()
+  records = db.execute("""SELECT * FROM songs;""").fetchall()
+  for recordId, record in enumerate(records):
+    display = "{} by {}".format(record[1], record[2])
+    screen.addstr(recordId, 0, display)
+  screen.getch()
+
 def main():
   global screen
   running = True
@@ -98,7 +107,8 @@ def main():
       screen.addstr(0, 0, "(p) start playing")
       screen.addstr(1, 0, "(a) add song")
       screen.addstr(2, 0, "(l) leaderboard")
-      screen.addstr(3, 0, "choose: ")
+      screen.addstr(3, 0, "(s) display a list of all songs")
+      screen.addstr(4, 0, "choose: ")
       action = chr(screen.getch())
       if action == 'p':
         gameloop()
@@ -119,6 +129,8 @@ def main():
         screen.addstr(6, 0, "Press any key to go back: ")
         screen.getch()
         continue
+      elif action == 's':
+        listsongs()
 
 def gameloop():
   screen.clear()
