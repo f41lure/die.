@@ -1,6 +1,7 @@
 import sqlite3
 import random
 import curses
+import time
 from passlib.apps import custom_app_context as pwd_context
 
 conn = sqlite3.connect("app.db", check_same_thread=False)
@@ -37,9 +38,9 @@ def signup(username, password):
     conn.commit()
     gUsername = username
     gPassword = password
-    return True  
+    return "Signed up." 
   else:
-    return False
+    return "Die."
 
 def addsong(name, artist):
   db = conn.cursor()
@@ -55,18 +56,19 @@ def fetchsong():
   ceiling = db.execute("""SELECT COUNT(0) FROM songs;""").fetchall()[0][0]
   songid = random.randrange(1, ceiling)
   song = db.execute("""SELECT * FROM songs WHERE id=?""", [songid]).fetchall()
-
   kya = ''
-  for word in song[0][1].split(' '):
-    kya += word[0] + ('_' * (len(word)-1)) + ' '
-  kya = kya.rstrip()
-
-  return song, kya
+  try:
+    for word in song[0][1].split(' '):
+      kya += word[0] + ('_' * (len(word)-1)) + ' '
+    kya = kya.rstrip()
+    return song, kya
+  except: 
+    return [(0, 0, "some idiot (keep hitting enter)")], "Skip this, this is a false entry"
 
 def leaderboard():
   db = conn.cursor()
   tards = db.execute("""SELECT * FROM users ORDER BY score;""").fetchall()
-  return tards
+  return reversed(tards)
 
 def bank(user, score):
   db = conn.cursor()
@@ -79,7 +81,10 @@ def listsongs():
   records = db.execute("""SELECT * FROM songs;""").fetchall()
   for recordId, record in enumerate(records):
     display = "{} by {}".format(record[1], record[2])
-    screen.addstr(recordId, 0, display)
+    try:
+      screen.addstr(recordId, 0, display)
+    except:
+      pass
   screen.getch()
 
 def main():
@@ -134,6 +139,10 @@ def main():
 
 def gameloop():
   screen.clear()
+  screen.addstr(0, 0, "Wagwan. To finish, type 'n' and press enter.")
+  screen.refresh()
+  time.sleep(3)
+  screen.clear()
   score = 0
   attempted = 0
   playing = True
@@ -158,12 +167,18 @@ def gameloop():
         tries += 1
       else:
         incorrect = False
+    if incorrect and playing:
+      screen.clear()
+      stAngerSnareSample = "Nah buddy, it was " + str(song[0][0][1]) + ". Now go drown in your shame."
+      screen.addstr(0, 0, stAngerSnareSample)
+      screen.refresh()
+      time.sleep(3)
     score += 2/(tries+1) * (not incorrect)
     attempted += 1
     display = 'score: {}'.format(str(score))
     screen.clear()
     screen.addstr(2, 0, display)
-    screen.addstr(1, 0, '')
+    screen.addstr(0, 0, '')
   bank(gUsername, score)
    
 main()
